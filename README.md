@@ -33,45 +33,39 @@ npm run build
 
 ## 单机启动（推荐）
 
-如果 Server 和打印机在同一台 Linux 上，不带参数直接启动即可一次拉起 Server 和 Agent：
+Server 和打印机在同一台 Linux 上时，直接运行 `main.py` 即可一次拉起 Server 和 Agent：
 
 ```bash
 PRINT_GATEWAY_AGENT_TOKEN=dev-agent-token \
 python main.py
 ```
 
-无参启动等价于 `python main.py all`。它会先启动 Server，等它就绪后再启动 Agent，并自动把 Agent 的 `--server` 指向本机 Server 的实际地址（读取 `PRINT_GATEWAY_HOST`/`PRINT_GATEWAY_PORT`）。`Ctrl+C` 或收到 `SIGTERM`（`kill`、systemd/docker stop）时，两个子进程都会被干净终止。
-
-传给 Agent 的参数直接跟在后面，例如跳过打印机同步：
-
-```bash
-python main.py --skip-printer-sync
-```
+它会先启动 Server，等它就绪后再启动 Agent，并自动把 Agent 的 `--server` 指向本机 Server 的实际地址（读取 `PRINT_GATEWAY_HOST`/`PRINT_GATEWAY_PORT`）。`Ctrl+C` 或收到 `SIGTERM`（`kill`、systemd/docker stop）时，两个子进程都会被干净终止。
 
 默认页面在 `http://127.0.0.1:8000`。前端使用 React/Vite，构建产物输出到 `src/print_gateway/web/dist`，由 FastAPI 直接托管。修改前端后需要重新执行 `npm run build`。
 
 ## 分开启动（多机 / 进阶）
 
-Server 和打印工作站分处两地时，分别启动。
+Server 和打印工作站分处两地时，用安装后的命令分别启动。
 
 Server：
 
 ```bash
 PRINT_GATEWAY_AGENT_TOKEN=dev-agent-token \
-python main.py server
+print-gateway-server
 ```
 
 Agent（跑在能连打印机的 Linux 上）：
 
 ```bash
 PRINT_GATEWAY_AGENT_TOKEN=dev-agent-token \
-python main.py agent --server http://<server-ip>:8000
+print-gateway-agent --server http://<server-ip>:8000
 ```
 
 只跑一轮便于调试：
 
 ```bash
-python main.py agent --server http://<server-ip>:8000 --once
+print-gateway-agent --server http://<server-ip>:8000 --once
 ```
 
 ## 配置（环境变量）

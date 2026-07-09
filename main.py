@@ -1,9 +1,7 @@
 from __future__ import annotations
 
-import argparse
 import multiprocessing
 import signal
-import subprocess
 import sys
 import time
 import urllib.error
@@ -40,10 +38,6 @@ def run_agent(argv: list[str]) -> None:
     agent_main()
 
 
-def build_frontend() -> None:
-    subprocess.run(["npm", "run", "build"], cwd=ROOT, check=True)
-
-
 def _server_base_url() -> str:
     ensure_src_path()
     from print_gateway.config import get_settings
@@ -64,10 +58,24 @@ def wait_for_server(url: str, timeout_seconds: int) -> bool:
     return False
 
 
-def run_all(agent_argv: list[str]) -> None:
-    """Run Server and Agent together for single-host deployments."""
+def _raise_keyboard_interrupt(signum: int, frame: object) -> None:
+    del signum, frame
+    raise KeyboardInterrupt
+
+
+def _stop_process(process: multiprocessing.process.BaseProcess) -> None:
+    if not process.is_alive():
+        return
+    process.terminate()
+    process.join(timeout=PROCESS_STOP_TIMEOUT_SECONDS)
+    if process.is_alive():
+        process.kill()
+        process.join()
+
+
+def main() -> None:
+    """Start the Server and Agent together on a single host."""
     base_url = _server_base_url()
-    resolved_agent_argv = _with_default_server(agent_argv, base_url)
 
     ctx = multiprocessing.get_context("spawn")
     server_process = ctx.Process(target=run_server, name="print-gateway-server")
@@ -76,7 +84,11 @@ def run_all(agent_argv: list[str]) -> None:
     try:
         if not wait_for_server(f"{base_url}/api/service", SERVER_READY_TIMEOUT_SECONDS):
             raise SystemExit("server did not become ready in time")
-        agent_process = ctx.Process(target=run_agent, args=(resolved_agent_argv,), name="print-gateway-agent")
+        agent_process = ctx.Process(
+            target=run_agent,
+            args=(["--server", base_url],),
+            name="print-gateway-agent",
+        )
         agent_process.start()
     except BaseException:
         _stop_process(server_process)
@@ -94,58 +106,6 @@ def run_all(agent_argv: list[str]) -> None:
         signal.signal(signal.SIGTERM, previous_sigterm)
         for process in processes:
             _stop_process(process)
-
-
-def _raise_keyboard_interrupt(signum: int, frame: object) -> None:
-    del signum, frame
-    raise KeyboardInterrupt
-
-
-def _stop_process(process: multiprocessing.process.BaseProcess) -> None:
-    if not process.is_alive():
-        return
-    process.terminate()
-    process.join(timeout=PROCESS_STOP_TIMEOUT_SECONDS)
-    if process.is_alive():
-        process.kill()
-        process.join()
-
-
-def _with_default_server(agent_argv: list[str], base_url: str) -> list[str]:
-    if "--server" in agent_argv:
-        return agent_argv
-    return ["--server", base_url, *agent_argv]
-
-
-def parse_args(argv: list[str]) -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Linux Print Gateway launcher")
-    parser.add_argument(
-        "command",
-        nargs="?",
-        default="all",
-        choices=["server", "agent", "all", "build-frontend"],
-        help="Command to run. Defaults to 'all' (single-host: server + agent together).",
-    )
-    args, remainder = parser.parse_known_args(argv)
-    args.remainder = remainder
-    return args
-
-
-def main() -> None:
-    args = parse_args(sys.argv[1:])
-    if args.command == "server":
-        run_server()
-        return
-    if args.command == "agent":
-        run_agent(args.remainder)
-        return
-    if args.command == "all":
-        run_all(args.remainder)
-        return
-    if args.command == "build-frontend":
-        build_frontend()
-        return
-    raise SystemExit(f"Unsupported command: {args.command}")
 
 
 if __name__ == "__main__":

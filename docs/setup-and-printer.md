@@ -67,7 +67,7 @@ npm run build
 PRINT_GATEWAY_AGENT_TOKEN=change-this-agent-token \
 PRINT_GATEWAY_HOST=0.0.0.0 \
 PRINT_GATEWAY_PORT=8000 \
-python main.py server
+print-gateway-server
 ```
 
 浏览器访问：
@@ -87,7 +87,7 @@ PRINT_GATEWAY_AGENT_TOKEN=change-this-agent-token \
 python main.py
 ```
 
-它会先启动 Server，等就绪后再启动 Agent，并自动让 Agent 连到本机 Server 的实际地址（读取 `PRINT_GATEWAY_HOST` / `PRINT_GATEWAY_PORT`）。`Ctrl+C` 或收到 `SIGTERM`（`kill`、systemd/docker stop）时两个子进程都会被干净终止。传给 Agent 的参数直接跟在后面，例如 `python main.py --once`。
+它会先启动 Server，等就绪后再启动 Agent，并自动让 Agent 连到本机 Server 的实际地址（读取 `PRINT_GATEWAY_HOST` / `PRINT_GATEWAY_PORT`）。`Ctrl+C` 或收到 `SIGTERM`（`kill`、systemd/docker stop）时两个子进程都会被干净终止。`main.py` 不接受额外参数；如需自定义启动（例如单独调试 Agent），请改用下面「分开启动」的方式。
 
 采用单机部署时可跳过下面的「启动 Agent」一节。其余的打印机连接和排错步骤仍然适用。
 
@@ -203,7 +203,7 @@ cd /path/to/打印机远程打印
 conda activate print-gateway
 
 PRINT_GATEWAY_AGENT_TOKEN=change-this-agent-token \
-python main.py agent \
+print-gateway-agent \
   --server http://<server-ip>:8000 \
   --agent-id linux-workstation
 ```
@@ -212,7 +212,7 @@ python main.py agent \
 
 ```bash
 PRINT_GATEWAY_AGENT_TOKEN=change-this-agent-token \
-python main.py agent \
+print-gateway-agent \
   --server http://<server-ip>:8000 \
   --agent-id linux-workstation \
   --once

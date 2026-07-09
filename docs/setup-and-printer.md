@@ -78,6 +78,19 @@ http://<server-ip>:8000
 
 Web 页面不需要登录。上线前必须修改 `PRINT_GATEWAY_AGENT_TOKEN`，Agent 和 Server 必须使用同一个值。
 
+### 单机部署（Server 与打印机同一台 Linux）
+
+如果打印机就接在跑 Server 的这台机器上，不必分开启动 Server 和 Agent。直接运行 `main.py`（不带子命令）即可一次拉起两者：
+
+```bash
+PRINT_GATEWAY_AGENT_TOKEN=change-this-agent-token \
+python main.py
+```
+
+它会先启动 Server，等就绪后再启动 Agent，并自动让 Agent 连到本机 Server 的实际地址（读取 `PRINT_GATEWAY_HOST` / `PRINT_GATEWAY_PORT`）。`Ctrl+C` 或收到 `SIGTERM`（`kill`、systemd/docker stop）时两个子进程都会被干净终止。传给 Agent 的参数直接跟在后面，例如 `python main.py --once`。
+
+采用单机部署时可跳过下面的「启动 Agent」一节。其余的打印机连接和排错步骤仍然适用。
+
 ## 3. Linux 打印工作站依赖
 
 Ubuntu / Debian 推荐安装：
